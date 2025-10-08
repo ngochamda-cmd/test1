@@ -9,9 +9,9 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("Ứng dụng Phân Tích Báo Cáo Tài chính 📊")
+st.title("Ứng dụng Phân Tích Báo Cáo Tài Chính 📊")
 
-# --- Khởi tạo Session State cho Chat (Đã có trong code gốc) ---
+# --- KHỞI TẠO SESSION STATE CHO CHAT (Mới được thêm) ---
 if "messages" not in st.session_state:
     # Lưu trữ lịch sử tin nhắn
     st.session_state["messages"] = []
@@ -36,6 +36,7 @@ def process_financial_data(df):
     ) * 100
 
     # 2. Tính Tỷ trọng theo Tổng Tài sản
+    # Lọc chỉ tiêu "TỔNG CỘNG TÀI SẢN"
     tong_tai_san_row = df[df['Chỉ tiêu'].str.contains('TỔNG CỘNG TÀI SẢN', case=False, na=False)]
     
     if tong_tai_san_row.empty:
@@ -58,7 +59,6 @@ def process_financial_data(df):
 def get_ai_analysis(data_for_ai, api_key):
     """Gửi dữ liệu phân tích đến Gemini API và nhận nhận xét ban đầu."""
     try:
-        # Khởi tạo client
         client = genai.Client(api_key=api_key)
         model_name = 'gemini-2.5-flash' 
 
@@ -78,7 +78,6 @@ def get_ai_analysis(data_for_ai, api_key):
     except APIError as e:
         return f"Lỗi gọi Gemini API: Vui lòng kiểm tra Khóa API hoặc giới hạn sử dụng. Chi tiết lỗi: {e}"
     except KeyError:
-        # Lỗi này đã được xử lý ở phần gọi API
         return "Lỗi: Không tìm thấy Khóa API 'GEMINI_API_KEY'. Vui lòng kiểm tra cấu hình Secrets trên Streamlit Cloud."
     except Exception as e:
         return f"Đã xảy ra lỗi không xác định: {e}"
@@ -136,16 +135,17 @@ if uploaded_file is not None:
                 
                 # Hiển thị kết quả Chỉ số
                 col1, col2 = st.columns(2)
+                
+                delta_value = None
+                if isinstance(thanh_toan_hien_hanh_N, float) and isinstance(thanh_toan_hien_hanh_N_1, float):
+                     delta_value = f"{thanh_toan_hien_hanh_N - thanh_toan_hien_hanh_N_1:.2f}"
+
                 with col1:
                     st.metric(
                         label="Chỉ số Thanh toán Hiện hành (Năm trước)",
                         value=f"{thanh_toan_hien_hanh_N_1:.2f} lần" if isinstance(thanh_toan_hien_hanh_N_1, float) else "N/A"
                     )
                 with col2:
-                    delta_value = None
-                    if isinstance(thanh_toan_hien_hanh_N, float) and isinstance(thanh_toan_hien_hanh_N_1, float):
-                         delta_value = f"{thanh_toan_hien_hanh_N - thanh_toan_hien_hanh_N_1:.2f}"
-                         
                     st.metric(
                         label="Chỉ số Thanh toán Hiện hành (Năm sau)",
                         value=f"{thanh_toan_hien_hanh_N:.2f} lần" if isinstance(thanh_toan_hien_hanh_N, float) else "N/A",
@@ -154,12 +154,13 @@ if uploaded_file is not None:
                     
             except IndexError:
                  st.warning("Thiếu chỉ tiêu **'TÀI SẢN NGẮN HẠN'** hoặc **'NỢ NGẮN HẠN'** để tính chỉ số.")
-                 thanh_toan_hien_hanh_N = "N/A"
+                 thanh_toan_hien_hanh_N = "N/A" # Dùng để tránh lỗi ở Chức năng 5
                  thanh_toan_hien_hanh_N_1 = "N/A"
             
             # Chuẩn bị dữ liệu để gửi cho AI (Dùng cho cả Chức năng 5 và 6)
             tsnh_tang_truong = "N/A"
             try:
+                # Lấy Tốc độ tăng trưởng Tài sản ngắn hạn (dùng cho AI)
                 tsnh_tang_truong = f"{df_processed[df_processed['Chỉ tiêu'].str.contains('TÀI SẢN NGẮN HẠN', case=False, na=False)]['Tốc độ tăng trưởng (%)'].iloc[0]:.2f}%"
             except IndexError:
                 pass
@@ -223,7 +224,7 @@ if uploaded_file is not None:
                 else:
                     st.error("Lỗi: Không tìm thấy Khóa API. Vui lòng cấu hình Khóa **'GEMINI_API_KEY'** trong Streamlit Secrets.")
 
-            # --- Chức năng 6: Khung Chat Hỏi Đáp Thêm với Gemini (ĐÃ THÊM) ---
+            # --- Chức năng 6: Khung Chat Hỏi Đáp Thêm với Gemini ---
             st.subheader("6. Hỏi đáp chuyên sâu với AI (Duy trì Ngữ cảnh)")
 
             if st.session_state["chat_session"]:
