@@ -12,6 +12,46 @@ st.set_page_config(
 
 st.title("Ứng dụng Phân Tích Báo Cáo Tài chính & Chatbot AI 📊")
 
+# =========================================================================
+# --- THÊM CSS TÙY CHỈNH CHO KHUNG CHAT (Đỏ và Trắng) ---
+# Sử dụng CSS Injection để ghi đè màu sắc mặc định của bong bóng chat
+# =========================================================================
+custom_css = """
+<style>
+/* AI/Assistant Message Bubble (Đỏ đậm, Chữ Trắng) */
+/* Selector nhắm vào khối tin nhắn với role="assistant" */
+[data-testid="stChatMessage"][data-message-role="assistant"] > div:nth-child(2) > div:nth-child(1) {
+    background-color: #B71C1C !important; /* Đỏ đậm */
+    border: none !important;
+    color: white !important;
+}
+
+/* User Message Bubble (Trắng, Chữ Đen) */
+/* Selector nhắm vào khối tin nhắn với role="user" */
+[data-testid="stChatMessage"][data-message-role="user"] > div:nth-child(2) > div:nth-child(1) {
+    background-color: white !important; /* Trắng */
+    border: 1px solid #B71C1C !important; /* Viền Đỏ cho nổi bật */
+    color: black !important;
+}
+
+/* Đảm bảo nội dung Markdown (chữ) bên trong bong bóng có màu phù hợp */
+[data-testid="stChatMessage"][data-message-role="assistant"] .stMarkdown {
+    color: white !important;
+}
+[data-testid="stChatMessage"][data-message-role="user"] .stMarkdown {
+    color: black !important;
+}
+
+/* Điều chỉnh icon/nút bên trong bong bóng đỏ (ví dụ: nút Copy) */
+[data-testid="stChatMessage"][data-message-role="assistant"] button {
+    color: white !important; 
+    border-color: white !important;
+}
+</style>
+"""
+st.markdown(custom_css, unsafe_allow_html=True)
+
+
 # --- 1. Khởi tạo State và API Key (Đảm bảo chỉ chạy 1 lần) ---
 # Khởi tạo session state cho lịch sử chat
 if "messages" not in st.session_state:
